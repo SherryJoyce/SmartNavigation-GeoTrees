@@ -8,7 +8,7 @@ $dbname = 'geotrees'; // Nama pangkalan data yang ingin dihubungkan
 // sambungan ke MySQL menggunakan mysqli
 $conn = new mysqli($host, $user, $password, $dbname);
 
-// Semak jika sambungan gagal
+// Check the connection of database
 if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);  // Tamat skrip 
 }
