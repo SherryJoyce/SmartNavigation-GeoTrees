@@ -10,7 +10,7 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
 
 
 let markersLayer = L.markerClusterGroup(); // for keluarkan pin pokok/point
-
+let routingControl; //Leaftlet Routing Machine, guna untuk direction
 let currentLocationMarker; //auto detect our location after click allow my location at device location
 
 // Fetch tree data
@@ -66,6 +66,89 @@ async function loadMarkers() {
 }
 
 
+// coding ini menunjukkan arah/navigation guna latitude and longitud from database
+function showRoute(destLat, destLon, tree) {
+  if (routingControl) {
+    map.removeControl(routingControl);
+  }
+  // this code for detect our location after we just allow device detect our current location
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      const userLat = position.coords.latitude;
+      const userLon = position.coords.longitude;
+
+      if (currentLocationMarker) {
+        map.removeLayer(currentLocationMarker);
+      }
+
+      currentLocationMarker = L.marker([userLat, userLon])
+        .addTo(map)
+        .bindPopup("Your Location")
+        .openPopup();
+
+      // 🌳 Tree icon for destination, this code for counter error in my coding previous
+      // where direction only show location A(our location) and not show B(target location)
+      // it for keluarkan imej location B 
+      const treeIcon = L.icon({
+        iconUrl: 'treeicon.png',
+        iconSize: [30, 30], // size icon
+        iconAnchor: [15, 30],
+        popupAnchor: [0, -30]
+      });
+
+      // code untuk keluarkan direction dari leaftlet machine direction, guna latitude, longitud
+      routingControl = L.Routing.control({
+  waypoints: [
+    L.latLng(userLat, userLon),
+    L.latLng(destLat, destLon)
+  ],
+  draggableWaypoints: false, // Disables dragging of any waypoint, this for fix error before, location error after move
+  addWaypoints: false,        // Prevent adding more waypoints by clicking, fix error before, we can move tree but path in same way
+  routeWhileDragging: false,
+  lineOptions: {
+    styles: [{ color: "blue", weight: 4 }]
+  },
+  // Below code for display our current location with icon we wanted
+  createMarker: function (i, wp) {
+    if (i === 0) {
+      return L.marker(wp.latLng, {
+        icon: L.icon({
+          iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+          iconSize: [25, 41],
+          iconAnchor: [12, 41],
+          popupAnchor: [1, -34],
+          shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+          shadowSize: [41, 41],
+        }),
+        draggable: false // 🛑 Lock current location pin
+      }).bindPopup("Your Location");
+    } else if (i === 1) {
+      return L.marker(wp.latLng, {
+        icon: L.icon({
+          iconUrl: "treeicon.png",
+          iconSize: [30, 30],
+          iconAnchor: [15, 30],
+          popupAnchor: [0, -30]
+        }),
+        draggable: false // 🛑 Lock tree location pin
+      }).bindPopup(`<strong>${tree.Name}</strong><br>Tree ID: ${tree.Tree_ID}`);
+    }
+  }
+}).on("routesfound", function (e) {
+  const route = e.routes[0];
+  const bounds = L.latLngBounds(route.coordinates);
+  map.fitBounds(bounds, { padding: [50, 50] });
+}).addTo(map);
+
+
+      // Fix gray map bug
+      setTimeout(() => {
+        map.setView([destLat, destLon], 19);
+      }, 500);
+
+
+
+
       // ✅ Update Table Below the Map
 const table = document.getElementById("treeDetailsTable");
 const tbody = table.querySelector("tbody");
@@ -87,6 +170,13 @@ tbody.innerHTML = `
   </tr>
 `;
 
+    },
+    () => {
+      alert("Cannot access your location. Please allow GPS.");
+    }
+  );
+}
+        
 // this code for box funtion dekat atas map untuk search, diamana kami buat untuk search id and name only
 function searchTree() {
   const query = document.getElementById("searchInput").value.toLowerCase();
